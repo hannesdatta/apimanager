@@ -54,3 +54,7 @@ target/
 
 # Default virtual environment
 venv/
+
+# Secret keys
+keys.txt
+keys*.json
