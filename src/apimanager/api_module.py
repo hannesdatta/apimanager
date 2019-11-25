@@ -14,6 +14,7 @@ import re
 import auth_keys
 import bson
 import copy
+import importlib
 
 #############################################
   
@@ -181,6 +182,7 @@ def api_retrieve_ids(objectids):
                     endpoint = {'module':'chartmetric_website', 'function':'cmsite_get'}
                 else:
                     endpoint = {'module':'chartmetric', 'function':'chartmetric_get'}
+            
             
             get=get_function(endpoint['module'], endpoint['function'])
             
@@ -535,16 +537,3 @@ def run_api(filter = {}):
     else:
         print('Empty queue; sleeping for 10 minutes...')
         time.sleep(10*60)
-        
-        
-if (len(sys.argv)>1): 
-    if sys.argv[1]=='worker':
-        if (len(sys.argv)>2):
-            filter = json.loads(sys.argv[2].replace("'",'"'))
-        else:
-            filter = {}
-            
-        while 1==1:
-            print('Running with filter: '+str(filter))
-            run_api(filter)
-            time.sleep(3)
