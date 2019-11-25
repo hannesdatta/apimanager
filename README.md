@@ -21,20 +21,18 @@ back potential error messages and re-collect items that were not collectible.
 
 Each API *request* - i.e., even before any data is retrieved - will be stored in a JSON object.
 
-```
-ts_added						Unix time when request was added
-ts_expiry						Expiry time of request (e.g., if it should only be fetched within the next hour; in unix time)
-priority						One of high, or low (high-priority requests are fetched first)
-url								URL of request
-headers							Header (not implemented yet) for request
-type							Tag to identify type of API call (can be used for querying later on)
-endpoint						API endpoint to use; refer to {'module': 'name of python module.py', 'function': 'name of function within module to call'}
-jobid							Job ID
-retrievals						Array, storing result of each retrieval attempt
-  - timestamp					Timestamp of actual data retrieval
-  - statuscode					Http status code of retrieval (200 for ok; 9990 if undefinied error)
-  - result						Actual result of API call, in JSON
-```		
+
+Attribute                         |               Operationalization
+----------------------------------|------------------------------------------------------------------
+ts_added | Unix time when request was added
+ts_expiry | Expiry time of request (e.g., if it should only be fetched within the next hour; in unix time)
+priority | One of high, or low (high-priority requests are fetched first)
+url | URL of request
+headers	 | Header (not implemented yet) for request
+type | Tag to identify type of API call (can be used for querying later on)
+endpoint | API endpoint to use; refer to {'module': 'name of python module.py', 'function': 'name of function within module to call'}
+jobid | Job ID
+retrievals | Array, storing result of each retrieval attempt; with sub-attributes timestamp (timestamp of actual data retrieval in Unixtime), statuscode (HTTP status code of retrieval (200 for ok), and result (actual result of API call, in JSON notation)
 
 Features:
 - queue jobs (with unlimited number of API endpoints to call)
