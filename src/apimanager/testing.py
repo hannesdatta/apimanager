@@ -19,7 +19,7 @@ for i in range(1, 20+1):
 jobid=api_module.api_job_add('test-todo', expiry=24*60*60, comments = 'testing for andrea')
 print(jobid)
 
-ids=api_module.api_request(urls, typestr='json-todo', endpoint={'module': 'endpoint_demo', 'function':'get'}, jobid=jobid)
+ids=api_module.api_request(urls, typestr='json-todo', endpoint='endpoint_demo', jobid=jobid)
 # no need to do anything with these IDs
 
 #############
@@ -41,7 +41,7 @@ for i in res:
 # Wait for retrieval by worker; return object if it exists within a specific timeout #
 ######################################################################################
     
-objid=api_module.api_request(urls[0], typestr='json-todo', endpoint={'module': 'endpoint_demo', 'function':'get'})
+objid=api_module.api_request(urls[0], typestr='json-todo', endpoint='endpoint_demo')
 
 api_module.api_getnow(objid, timeout=30)
 
