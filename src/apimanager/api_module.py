@@ -12,6 +12,8 @@ from bson.objectid import ObjectId
 import math
 import re
 import auth_keys
+import bson
+import copy
 
 #############################################
   
@@ -159,10 +161,6 @@ def split_obj(x, nchunks,node='obj'):
         result.append(copyobj)
     return(result)
 
-#test=split_obj(x=js, nchunks=10)
-
-import bson
-import copy
 
 def get_function(module, function='get'):
     mod= __import__(module)
@@ -176,7 +174,7 @@ def api_retrieve_ids(objectids):
         print('getting object')
         try:
             try:
-                endpoint=obj['endpoint']
+                endpoint=keys.get('endpoints').get(obj['endpoint'])
             except:
                 internal_endpoint=bool(re.search('SNS/socialStat', obj['url']))
                 if internal_endpoint==True:
@@ -344,6 +342,7 @@ def api_get_results(type, fields=[], limit=-1, success = False):
     res = list(apimanagement_db.requests.aggregate(pipeline,allowDiskUse = True))
 
     return(res)
+
 
 
 def api_status(graceperiod=0):
