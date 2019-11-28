@@ -12,6 +12,9 @@ from bson.objectid import ObjectId
 import math
 import re
 import auth_keys
+import bson
+import copy
+import importlib
 
 #############################################
   
@@ -166,10 +169,6 @@ def split_obj(x, nchunks,node='obj'):
         result.append(copyobj)
     return(result)
 
-#test=split_obj(x=js, nchunks=10)
-
-import bson
-import copy
 
 def get_function(module, function='get'):
     mod= __import__(module)
@@ -183,13 +182,14 @@ def api_retrieve_ids(objectids):
         print('getting object')
         try:
             try:
-                endpoint=obj['endpoint']
+                endpoint=keys.get('endpoints').get(obj['endpoint'])
             except:
                 internal_endpoint=bool(re.search('SNS/socialStat', obj['url']))
                 if internal_endpoint==True:
                     endpoint = {'module':'chartmetric_website', 'function':'cmsite_get'}
                 else:
                     endpoint = {'module':'chartmetric', 'function':'chartmetric_get'}
+            
             
             get=get_function(endpoint['module'], endpoint['function'])
             
@@ -358,6 +358,7 @@ def api_get_results(type, fields=[], limit=-1, success = False):
     res = list(apimanagement_db.requests.aggregate(pipeline,allowDiskUse = True))
 
     return(res)
+
 
 
 def api_status(graceperiod=0):
@@ -549,16 +550,3 @@ def run_api(filter = {}):
     else:
         print('Empty queue; sleeping for 10 minutes...')
         time.sleep(10*60)
-        
-        
-if (len(sys.argv)>1): 
-    if sys.argv[1]=='worker':
-        if (len(sys.argv)>2):
-            filter = json.loads(sys.argv[2].replace("'",'"'))
-        else:
-            filter = {}
-            
-        while 1==1:
-            print('Running with filter: '+str(filter))
-            run_api(filter)
-            time.sleep(3)

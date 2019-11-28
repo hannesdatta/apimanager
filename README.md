@@ -21,20 +21,18 @@ back potential error messages and re-collect items that were not collectible.
 
 Each API *request* - i.e., even before any data is retrieved - will be stored in a JSON object.
 
-```
-ts_added						Unix time when request was added
-ts_expiry						Expiry time of request (e.g., if it should only be fetched within the next hour; in unix time)
-priority						One of high, or low (high-priority requests are fetched first)
-url								URL of request
-headers							Header (not implemented yet) for request
-type							Tag to identify type of API call (can be used for querying later on)
-endpoint						API endpoint to use; refer to {'module': 'name of python module.py', 'function': 'name of function within module to call'}
-jobid							Job ID
-retrievals						Array, storing result of each retrieval attempt
-  - timestamp					Timestamp of actual data retrieval
-  - statuscode					Http status code of retrieval (200 for ok; 9990 if undefinied error)
-  - result						Actual result of API call, in JSON
-```		
+
+Attribute                         |               Operationalization
+----------------------------------|------------------------------------------------------------------
+ts_added | Unix time when request was added
+ts_expiry | Expiry time of request (e.g., if it should only be fetched within the next hour; in unix time)
+priority | One of high, or low (high-priority requests are fetched first)
+url | URL of request
+headers	 | Header (not implemented yet) for request
+type | Tag to identify type of API call (can be used for querying later on)
+endpoint | API endpoint to use; refer to {'module': 'name of python module.py', 'function': 'name of function within module to call'}
+jobid | Job ID
+retrievals | Array, storing result of each retrieval attempt; with sub-attributes timestamp (timestamp of actual data retrieval in Unixtime), statuscode (HTTP status code of retrieval (200 for ok), and result (actual result of API call, in JSON notation)
 
 Features:
 - queue jobs (with unlimited number of API endpoints to call)
@@ -53,10 +51,10 @@ The packages requires a `keys.json` file in the root directory for the configura
 ```
 {"mongo": {"connection_string": "mongodb://CONNECTION STRING HERE",
 		   "db_name": "api-test"},
-"endpoints": [{"module": "jsonplaceholder",
-			    "function": "get",
-				"username": "",
-				"password": ""}]
+"endpoints": ["endpoint_name": {"module": "jsonplaceholder",
+								"function": "get",
+								"username": "",
+								"password": ""}]
 }
 
 ```
@@ -70,18 +68,44 @@ Testing.py contains example code to submit API requests.
 
 **Start the collection**
 
-To start up the script in worker mode, run
+To start up the script in worker mode, put `import api_module` in your script,
+and call `api_module.run_api()`. The method accepts a filter argument, which can be used
+to filter for specific calls. Examples include:
 
-`python api_module.py worker`
+
 
 You can also specify a specific filter for which types of API calls to get (such as type strings, or job IDs)
 
-`python api_module.py worker "{'type':'playlist-placements'}"`
+`api_module.run_api({'jobid': '5ddba88b92115a424c88c5a2'})` to retrieve 
+data for a specific job, or
+`api_module.run_api({'type': 'type-string'})` to filter for a specific type of job.
 
-or
+Use the following snipped as an example startup script for your worker.
 
-`python api_module.py worker "{'jobid': ObjectId('12345678')}"`
+```
+# Example worker script
+import sys
+import os
+import time
+import json
 
+sys.path.append(os.path.dirname(os.path.abspath("apimanager/src/apimanager//api_module.py")))
+
+import api_module
+from bson.objectid import ObjectId
+  
+if (len(sys.argv)>1):
+    filter = json.loads(sys.argv[1].replace("'",'"'))
+    if 'jobid' in sys.argv[1]: filter['jobid']=ObjectId(filter['jobid'])
+else:
+    filter = {}
+    
+while 1==1:
+    print('Running with filter: '+str(filter))
+    api_module.run_api(filter)
+    time.sleep(3)
+
+```
 
 ## Setup
 
