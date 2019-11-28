@@ -73,11 +73,13 @@ def api_buildindices():
                                                ("retrievals.status_code", pymongo.ASCENDING),
                                                ("retrievals.timestamp", pymongo.ASCENDING)
                                                ], background=True)
+    
         apimanagement_db.requests.create_index([("ts_expiry", pymongo.ASCENDING),
                                                ("status", pymongo.ASCENDING),
                                                ("retrievals.status_code", pymongo.ASCENDING),
                                                ("priority", pymongo.ASCENDING)
                                                ], background=True)
+    
         apimanagement_db.requests.create_index([("ts_expiry", pymongo.ASCENDING),
                                                ("status", pymongo.ASCENDING),
                                                ("retrievals.status_code", pymongo.ASCENDING)
@@ -366,34 +368,25 @@ def api_status(graceperiod=0):
     
     currtime=time.time()
     # Total number of to-be-downloaded queries
-    nopen = apimanagement_db.requests.count_documents( {"ts_expiry": { '$gte': currtime-graceperiod},
-                                                        "status": {'$not' : { '$in': ["terminated", "paused"]}},
-                                               "$or" : [ {"retrievals" : { "$size" : 0}},
-                                                       {"retrievals" : { "$size" : 1}},
-                                                       {"retrievals" : { "$size" : 2}}],
-                                               "retrievals.status_code": {'$not' : {"$eq": 200}}})
     
-    nexpired_not_downloaded = apimanagement_db.requests.count_documents( {
+    nopen = apimanagement_db.requests.count_documents( {"ts_expiry": { '$gte': currtime-graceperiod},
+                                                            "status": {'$not' : { '$in': ["terminated", "paused"]}},
+                                                            "retrievals.status_code": {'$not' : {"$eq": 200}}})
+    
+    nexpired_not_downloaded =  apimanagement_db.requests.count_documents( {
                                                "status": {'$not' : { '$in': ["terminated", "paused"]}},
                                                "ts_expiry": { '$lt': currtime-graceperiod},
-                                               "$or" : [ {"retrievals" : { "$size" : 0}},
-                                                       {"retrievals" : { "$size" : 1}},
-                                                       {"retrievals" : { "$size" : 2}}],
                                                "retrievals.status_code": {'$not' : {"$eq": 200}}})
     
-    npaused_terminated = apimanagement_db.requests.count_documents( {
-                                               "status": {'$in' : ["terminated", "paused"]}})
+        
+    n_downloaded =  apimanagement_db.requests.count_documents( {"retrievals.status_code": 200})
+        
+    n_last_5minutes =  apimanagement_db.requests.count_documents( {"retrievals.timestamp": {'$gte' : currtime-5*60}})
     
-    n_downloaded = apimanagement_db.requests.count_documents( {"retrievals.status_code": 200})
-
-    n_last_minute = apimanagement_db.requests.count_documents( {"retrievals.timestamp": {'$gte' : currtime-1*60}})
-    n_last_5minutes = apimanagement_db.requests.count_documents( {"retrievals.timestamp": {'$gte' : currtime-5*60}})
-
-    n_errlast_minute = apimanagement_db.requests.count_documents( {"retrievals.timestamp": {'$gte' : currtime-1*60},
-                                                               "retrievals.status_code": {'$not' : {"$eq": 200}}})
-    n_errlast_5minutes = apimanagement_db.requests.count_documents( {"retrievals.timestamp": {'$gte' : currtime-5*60},
-                                                               "retrievals.status_code": {'$not' : {"$eq": 200}}})
+    n_errlast_5minutes =  apimanagement_db.requests.count_documents( {"retrievals.timestamp": {'$gte' : currtime-5*60},
+                                                                   "retrievals.status_code": {'$not' : {"$eq": 200}}})
     
+  
     printobj = []
     printobj.append(datetime.datetime.fromtimestamp(currtime).strftime('%Y-%m-%d %H:%M:%S'))
     printobj.append('=============================================')
@@ -403,13 +396,9 @@ def api_status(graceperiod=0):
     printobj.append("Expected time (in hrs) for completion: "+ str(datetime.timedelta(hours=(nopen/40)/60)))   
     printobj.append('')
     printobj.append("Number expired API calls: "+str(nexpired_not_downloaded))
-    printobj.append("Number paused or terminated API calls: "+str(npaused_terminated))
     
     printobj.append("Number of successful API calls: "+str(n_downloaded))
-    printobj.append("Number of API calls in last minute (max. is 50): "+ str(n_last_minute))
     printobj.append("Number of API calls in last 5 minutes (max. is 250): "+ str(n_last_5minutes))
-    
-    printobj.append("Number of error API calls in last minute: "+str(n_errlast_minute))
     printobj.append("Number of error API calls in last 5 minutes: "+str(n_errlast_5minutes))
     printobj.append('')
     print('\n'.join(printobj))
