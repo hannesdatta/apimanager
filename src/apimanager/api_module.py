@@ -62,51 +62,58 @@ def api_buildindices():
                                                ("ts_added", pymongo.ASCENDING),
                                                ("retrievals.status_code", pymongo.ASCENDING),
                                                ("retrievals.timestamp", pymongo.ASCENDING)
-                                               ])
+                                               ], background=True)
 
         apimanagement_db.requests.create_index([("priority", pymongo.ASCENDING), 
                                                 ("ts_expiry", pymongo.ASCENDING),
                                                ("status", pymongo.ASCENDING),
                                                ("retrievals.status_code", pymongo.ASCENDING),
                                                ("retrievals.timestamp", pymongo.ASCENDING)
-                                               ])
+                                               ], background=True)
         apimanagement_db.requests.create_index([("ts_expiry", pymongo.ASCENDING),
                                                ("status", pymongo.ASCENDING),
                                                ("retrievals.status_code", pymongo.ASCENDING),
                                                ("priority", pymongo.ASCENDING)
-                                               ])
+                                               ], background=True)
         apimanagement_db.requests.create_index([("ts_expiry", pymongo.ASCENDING),
                                                ("status", pymongo.ASCENDING),
                                                ("retrievals.status_code", pymongo.ASCENDING)
-                                               ])
+                                               ], background=True)
 
         apimanagement_db.requests.create_index([("type", pymongo.ASCENDING),
                                                 ("retrievals.status_code", pymongo.ASCENDING)
-                                               ])
+                                               ], background=True)
 
         apimanagement_db.requests.create_index([("ts_added", pymongo.ASCENDING)
-                                               ])
+                                               ], background=True)
 
         apimanagement_db.requests.create_index([("priority", pymongo.ASCENDING),
                                                 ("ts_expiry", pymongo.ASCENDING)
-                                               ])
+                                               ], background=True)
 
         apimanagement_db.requests.create_index([("ts_expiry", pymongo.ASCENDING)
-                                               ])
+                                               ], background=True)
 
         apimanagement_db.requests.create_index([("retrievals.timestamp", pymongo.ASCENDING)
-                                               ])
+                                               ], background=True)
         apimanagement_db.requests.create_index([("retrievals.status_code", pymongo.ASCENDING)
-                                               ])
+                                               ], background=True)
 
         apimanagement_db.requests.create_index([("status", pymongo.ASCENDING)
-                                               ])
+                                               ], background=True)
+    
+    
         apimanagement_db.requests.create_index([("priority", pymongo.ASCENDING),
                                                 ("ts_expiry", pymongo.ASCENDING)
-                                               ])
+                                               ], background=True)
     
-        apimanagement_db.requests.create_index([("jobid", pymongo.ASCENDING)])
-    
+        apimanagement_db.requests.create_index([("jobid", pymongo.ASCENDING)], background=True)
+        apimanagement_db.requests.create_index([("jobid", pymongo.ASCENDING), ("retrievals.status_code", pymongo.ASCENDING)], background=True)
+            
+        apimanagement_db.requests.create_index([("jobid", pymongo.ASCENDING), 
+                                                ("priority", pymongo.ASCENDING), 
+                                                ("ts_expiry", pymongo.ASCENDING)], background=True)
+
         #apimanagement_db.requests.index_information()
 
 # post API get requests to DB
@@ -259,10 +266,17 @@ def get_queue(currtime=math.floor(time.time()), graceperiod=0, limit = 10, filte
     # first sort by priority, then by expiry timestamps (first in, last out)
     
     pipeline = {"ts_expiry": { '$gte': currtime-graceperiod},
-                "retrievals": {"$exists":"true"}, 
-                "$or" : [ {"retrievals": {"$size": 0}},{"retrievals": {"$size": 1}},{"retrievals": {"$size": 2}},
-                         {"retrievals": {"$size": 3}},{"retrievals": {"$size": 4}}], 
-                "retrievals.status_code": {"$not": {"$eq": 200}}}
+            "retrievals.status_code": {"$not": {"$eq": 200}},
+            #"retrievals": {"$exists":"true"}, 
+            "$where": "this.retrievals.length<5", 
+            }
+
+    #pipeline = {"ts_expiry": { '$gte': currtime-graceperiod},
+    #            "retrievals": {"$exists":"true"}, 
+    #            "$or" : [ {"retrievals": {"$size": 0}},{"retrievals": {"$size": 1}},{"retrievals": {"$size": 2}},
+    #                     {"retrievals": {"$size": 3}},{"retrievals": {"$size": 4}}], 
+    #            "retrievals.status_code": {"$not": {"$eq": 200}}}
+    
     if len(filter)>0: 
         filter.update(pipeline)
     else:
@@ -408,7 +422,6 @@ def api_status(graceperiod=0):
 def api_job_add(descr, expiry = 4*60*60, comments = ''):
     tsadded = math.floor(time.time())
     tsexpiry = tsadded+expiry
-    ids = []
     dic = {"descr": descr,
            "ts_added" : tsadded,
            "ts_expiry" : tsexpiry,
