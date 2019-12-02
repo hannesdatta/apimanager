@@ -14,13 +14,15 @@ import re
 import auth_keys
 import bson
 import copy
-import importlib
 
 #############################################
   
 def startup():
     print('Starting up connection to MongoDB server...')
     global apimanagement_db
+    global data
+    global jobs
+    
     global endpoints
     global keys
         
@@ -38,6 +40,8 @@ def startup():
         print(err)
         
     apimanagement_db=client[keys['mongo']['db_name']]
+    data=apimanagement_db.requests
+    jobs=apimanagement_db.jobs
 
 #############################################
 
@@ -52,14 +56,14 @@ def dump_data(jsonobj, fn):
 # build indices
 def api_buildindices():
     
-    #apimanagement_db.requests.create_index([("ts_expiry", pymongo.ASCENDING)], background=True)
-    #apimanagement_db.requests.create_index([("priority", pymongo.ASCENDING)], background=True)
-    #apimanagement_db.requests.create_index([("retrievals.status_code", pymongo.ASCENDING)], background=True)
+    #data.create_index([("ts_expiry", pymongo.ASCENDING)], background=True)
+    #data.create_index([("priority", pymongo.ASCENDING)], background=True)
+    #data.create_index([("retrievals.status_code", pymongo.ASCENDING)], background=True)
     # The most important index I think is this compound one for sorting:
-    #apimanagement_db.requests.create_index([("ts_expiry", pymongo.ASCENDING),("priority", pymongo.ASCENDING)], background=True)
+    #data.create_index([("ts_expiry", pymongo.ASCENDING),("priority", pymongo.ASCENDING)], background=True)
 
     if (0==1):
-        apimanagement_db.requests.create_index([("priority", pymongo.ASCENDING), 
+        data.create_index([("priority", pymongo.ASCENDING), 
                                                 ("ts_expiry", pymongo.ASCENDING),
                                                ("status", pymongo.ASCENDING),
                                                ("ts_added", pymongo.ASCENDING),
@@ -67,59 +71,59 @@ def api_buildindices():
                                                ("retrievals.timestamp", pymongo.ASCENDING)
                                                ], background=True)
 
-        apimanagement_db.requests.create_index([("priority", pymongo.ASCENDING), 
+        data.create_index([("priority", pymongo.ASCENDING), 
                                                 ("ts_expiry", pymongo.ASCENDING),
                                                ("status", pymongo.ASCENDING),
                                                ("retrievals.status_code", pymongo.ASCENDING),
                                                ("retrievals.timestamp", pymongo.ASCENDING)
                                                ], background=True)
     
-        apimanagement_db.requests.create_index([("ts_expiry", pymongo.ASCENDING),
+        data.create_index([("ts_expiry", pymongo.ASCENDING),
                                                ("status", pymongo.ASCENDING),
                                                ("retrievals.status_code", pymongo.ASCENDING),
                                                ("priority", pymongo.ASCENDING)
                                                ], background=True)
     
-        apimanagement_db.requests.create_index([("ts_expiry", pymongo.ASCENDING),
+        data.create_index([("ts_expiry", pymongo.ASCENDING),
                                                ("status", pymongo.ASCENDING),
                                                ("retrievals.status_code", pymongo.ASCENDING)
                                                ], background=True)
 
-        apimanagement_db.requests.create_index([("type", pymongo.ASCENDING),
+        data.create_index([("type", pymongo.ASCENDING),
                                                 ("retrievals.status_code", pymongo.ASCENDING)
                                                ], background=True)
 
-        apimanagement_db.requests.create_index([("ts_added", pymongo.ASCENDING)
+        data.create_index([("ts_added", pymongo.ASCENDING)
                                                ], background=True)
 
-        apimanagement_db.requests.create_index([("priority", pymongo.ASCENDING),
+        data.create_index([("priority", pymongo.ASCENDING),
                                                 ("ts_expiry", pymongo.ASCENDING)
                                                ], background=True)
 
-        apimanagement_db.requests.create_index([("ts_expiry", pymongo.ASCENDING)
+        data.create_index([("ts_expiry", pymongo.ASCENDING)
                                                ], background=True)
 
-        apimanagement_db.requests.create_index([("retrievals.timestamp", pymongo.ASCENDING)
+        data.create_index([("retrievals.timestamp", pymongo.ASCENDING)
                                                ], background=True)
-        apimanagement_db.requests.create_index([("retrievals.status_code", pymongo.ASCENDING)
+        data.create_index([("retrievals.status_code", pymongo.ASCENDING)
                                                ], background=True)
 
-        apimanagement_db.requests.create_index([("status", pymongo.ASCENDING)
+        data.create_index([("status", pymongo.ASCENDING)
                                                ], background=True)
     
     
-        apimanagement_db.requests.create_index([("priority", pymongo.ASCENDING),
+        data.create_index([("priority", pymongo.ASCENDING),
                                                 ("ts_expiry", pymongo.ASCENDING)
                                                ], background=True)
     
-        apimanagement_db.requests.create_index([("jobid", pymongo.ASCENDING)], background=True)
-        apimanagement_db.requests.create_index([("jobid", pymongo.ASCENDING), ("retrievals.status_code", pymongo.ASCENDING)], background=True)
+        data.create_index([("jobid", pymongo.ASCENDING)], background=True)
+        data.create_index([("jobid", pymongo.ASCENDING), ("retrievals.status_code", pymongo.ASCENDING)], background=True)
             
-        apimanagement_db.requests.create_index([("jobid", pymongo.ASCENDING), 
+        data.create_index([("jobid", pymongo.ASCENDING), 
                                                 ("priority", pymongo.ASCENDING), 
                                                 ("ts_expiry", pymongo.ASCENDING)], background=True)
 
-        #apimanagement_db.requests.index_information()
+        #data.index_information()
 
 # post API get requests to DB
 def api_request(urls, typestr, endpoint, expiry=4*60*60, priority="low", jobid=ObjectId()):
@@ -142,7 +146,7 @@ def api_request(urls, typestr, endpoint, expiry=4*60*60, priority="low", jobid=O
     
     api_buildindices()
     
-    ids = apimanagement_db.requests.insert_many(dics)
+    ids = data.insert_many(dics)
     return(ids.inserted_ids)
 
 # how to deal with objects larger than 16MB?
@@ -180,7 +184,7 @@ def get_function(module, function='get'):
 # execute API get request for a specific retrieval request from the DB
 def api_retrieve_ids(objectids):
     for o in objectids:
-        obj = apimanagement_db.requests.find_one({"_id": o})
+        obj = data.find_one({"_id": o})
         print('getting object')
         try:
             try:
@@ -254,12 +258,12 @@ def api_retrieve_ids(objectids):
         for ins in insert_obj:
             cnt+=1
             if (cnt==1): 
-                apimanagement_db.requests.update_one({'_id':o}, {"$set": ins}, upsert=False)
+                data.update_one({'_id':o}, {"$set": ins}, upsert=False)
                 print(o)
             if (cnt>1): 
-                insid=apimanagement_db.requests.insert_one(ins)
+                insid=data.insert_one(ins)
                 print(insid.inserted_id)
-        #apimanagement_db.requests.update_one({'_id':o}, {"$set": obj}, upsert=False)
+        #data.update_one({'_id':o}, {"$set": obj}, upsert=False)
         print('done updating')
 
 # find IDs of retrieval requests that are still open
@@ -284,7 +288,7 @@ def get_queue(currtime=math.floor(time.time()), graceperiod=0, limit = 10, filte
     else:
         filter = pipeline
     
-    obj = apimanagement_db.requests.find(filter, {'_id':1}).sort([("priority", 1), ("ts_expiry", 1)]).limit(limit)
+    obj = data.find(filter, {'_id':1}).sort([("priority", 1), ("ts_expiry", 1)]).limit(limit)
     
     ids=[]
     for i in obj:
@@ -303,7 +307,7 @@ def api_getnow(objectid, timeout = 20):
     c=0
     while (found==False):
         c=c+1
-        obj = apimanagement_db.requests.find_one({"_id": objectid, 'retrievals.status_code':200})
+        obj = data.find_one({"_id": objectid, 'retrievals.status_code':200})
         if obj is not None: 
             found = True
             break
@@ -357,7 +361,7 @@ def api_get_results(type, fields=[], limit=-1, success = False):
      
     pipeline.append({"$sort": { "retrievals.timestamp": -1 } })
     #print(pipeline)
-    res = list(apimanagement_db.requests.aggregate(pipeline,allowDiskUse = True))
+    res = list(data.aggregate(pipeline,allowDiskUse = True))
 
     return(res)
 
@@ -369,21 +373,21 @@ def api_status(graceperiod=0):
     currtime=time.time()
     # Total number of to-be-downloaded queries
     
-    nopen = apimanagement_db.requests.count_documents( {"ts_expiry": { '$gte': currtime-graceperiod},
+    nopen = data.count_documents( {"ts_expiry": { '$gte': currtime-graceperiod},
                                                             "status": {'$not' : { '$in': ["terminated", "paused"]}},
                                                             "retrievals.status_code": {'$not' : {"$eq": 200}}})
     
-    nexpired_not_downloaded =  apimanagement_db.requests.count_documents( {
+    nexpired_not_downloaded =  data.count_documents( {
                                                "status": {'$not' : { '$in': ["terminated", "paused"]}},
                                                "ts_expiry": { '$lt': currtime-graceperiod},
                                                "retrievals.status_code": {'$not' : {"$eq": 200}}})
     
         
-    n_downloaded =  apimanagement_db.requests.count_documents( {"retrievals.status_code": 200})
+    n_downloaded =  data.count_documents( {"retrievals.status_code": 200})
         
-    n_last_5minutes =  apimanagement_db.requests.count_documents( {"retrievals.timestamp": {'$gte' : currtime-5*60}})
+    n_last_5minutes =  data.count_documents( {"retrievals.timestamp": {'$gte' : currtime-5*60}})
     
-    n_errlast_5minutes =  apimanagement_db.requests.count_documents( {"retrievals.timestamp": {'$gte' : currtime-5*60},
+    n_errlast_5minutes =  data.count_documents( {"retrievals.timestamp": {'$gte' : currtime-5*60},
                                                                    "retrievals.status_code": {'$not' : {"$eq": 200}}})
     
   
@@ -418,17 +422,17 @@ def api_job_add(descr, expiry = 4*60*60, comments = ''):
            "ts_done": 0,
            "comments": comments,
            "ids" : []}
-    job = apimanagement_db.jobs.insert_one(dic)
+    job = jobs.insert_one(dic)
     return(job.inserted_id)
 
 # to be deprecated; job ID will now be inserted directly in requests
 def api_job_insertids(jobid, ids):
-    obj = apimanagement_db.jobs.find_one({"_id": jobid})
+    obj = jobs.find_one({"_id": jobid})
 
     for id in ids:
         obj['ids'].append(id)
 
-    upd=apimanagement_db.jobs.update_one({'_id':jobid}, {"$set": obj}, upsert=False)
+    upd=jobs.update_one({'_id':jobid}, {"$set": obj}, upsert=False)
     return(upd)
 
 ###########################################################
@@ -439,7 +443,7 @@ def show_current_jobs():
     import datetime
 
     currtime=time.time()
-    lastminute = apimanagement_db.requests.find( {"retrievals.timestamp": {'$gte' : currtime-1*60}}, {"url":1}).limit(5)
+    lastminute = data.find( {"retrievals.timestamp": {'$gte' : currtime-1*60}}, {"url":1}).limit(5)
     lastminute_ids = []
     lastminute_table = []
     for l in lastminute: 
@@ -451,7 +455,7 @@ def show_current_jobs():
     display(HTML(tabulate.tabulate(lastminute_table, tablefmt='html')))
 
     # find associated job
-    res=apimanagement_db.jobs.find( {"ids": {"$in" : lastminute_ids}}, {"_id":1, "ts_added":1, "descr":1, "comments":1})
+    res=jobs.find( {"ids": {"$in" : lastminute_ids}}, {"_id":1, "ts_added":1, "descr":1, "comments":1})
 
     job_array = []
     for job in res:
@@ -473,7 +477,7 @@ def show_all_jobs():
     ###########################
 
     from datetime import datetime
-    all_jobs=apimanagement_db.jobs.find( {})
+    all_jobs=jobs.find( {})
     job_array = []
     for job in all_jobs:
         ts=datetime.utcfromtimestamp(job['ts_added']).strftime('%Y-%m-%d %H:%M')
@@ -492,29 +496,29 @@ def show_all_jobs():
 # Set a job's associated IDs statuses (e.g., paused, terminated, active)
 # to be updated!!!
 def update_job_status(jobid, new_status):
-    #jobids=apimanagement_db.jobs.find_one( {'_id' : jobid}, { "ids" : 1})
+    #jobids=jobs.find_one( {'_id' : jobid}, { "ids" : 1})
     #ids = jobids['ids']
 
     obj = {}
     obj['status'] = new_status
     if (new_status=='delete'):
-        res=apimanagement_db.requests.delete_many({"jobid": jobid})
+        res=data.delete_many({"jobid": jobid})
         cnt=res.deleted_count
         print('Deleted ' + str(cnt)+' documents.')
-        res=apimanagement_db.jobs.delete_many({"_id": jobid})
+        res=jobs.delete_many({"_id": jobid})
         
     else:
-        res=apimanagement_db.requests.update_many({"jobid": jobid}, {"$set": obj}, upsert=False)
+        res=data.update_many({"jobid": jobid}, {"$set": obj}, upsert=False)
         cnt=res.modified_count
         print('Modified ' + str(cnt)+' documents.')
     
 
 def get_job_status(objid):
     #objid='5cdbd03992115a16cc5828c6'
-    job = apimanagement_db.jobs.find_one({"_id": ObjectId(objid)})
+    job = jobs.find_one({"_id": ObjectId(objid)})
     
-    nosuccessful=apimanagement_db.requests.count_documents({'jobid':objid, 'retrievals.status_code':200})
-    noitems=apimanagement_db.requests.count_documents({'jobid':objid})
+    nosuccessful=data.count_documents({'jobid':objid, 'retrievals.status_code':200})
+    noitems=data.count_documents({'jobid':objid})
     
     ret=job
     ret['number_of_items'] = noitems
