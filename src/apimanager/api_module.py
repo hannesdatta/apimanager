@@ -45,13 +45,20 @@ def startup():
 
 #############################################
 
-def dump_data(jsonobj, fn):
+def dump_data(jsonobj, fn=''):
     from bson.json_util import dumps
-    f=open(fn,'w', encoding='utf-8')
-    for te in jsonobj:
-        f.write(dumps(te))
-        f.write('\n')
-    f.close()
+    if (fn!=''):
+        f=open(fn,'w', encoding='utf-8')
+        for te in jsonobj:
+            f.write(dumps(te))
+            f.write('\n')
+        f.close()
+    else:
+        outobj = ''
+        for te in jsonobj:
+            outobj.join(dumps(te))
+        return(outobj)
+            
     
 # build indices
 def api_buildindices():
@@ -543,3 +550,52 @@ def run_api(filter = {}):
     else:
         print('Empty queue; sleeping for 10 minutes...')
         time.sleep(10*60)
+
+
+## 
+        
+ # DATA RETRIEVAL
+ 
+# Print iteration progress (from https://stackoverflow.com/questions/3173320/text-progress-bar-in-the-console)
+def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█'):
+    """
+    Call in a loop to create terminal progress bar
+    @params:
+        iteration   - Required  : current iteration (Int)
+        total       - Required  : total iterations (Int)
+        prefix      - Optional  : prefix string (Str)
+        suffix      - Optional  : suffix string (Str)
+        decimals    - Optional  : positive number of decimals in percent complete (Int)
+        length      - Optional  : character length of bar (Int)
+        fill        - Optional  : bar fill character (Str)
+    """
+    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+    filledLength = int(length * iteration // total)
+    bar = fill * filledLength + '-' * (length - filledLength)
+    print('\r%s |%s| %s%% %s' % (prefix, bar, percent, suffix), end = '\r')
+    # Print New Line on Complete
+    if iteration == total: 
+        print()
+
+from bson.json_util import dumps
+
+
+def save_job(jobid, fn):
+    print(jobid)
+    total=data.count_documents({'jobid':jobid})
+    
+    res=data.find({'jobid': jobid})
+    print(str(total)+ ' exporting objects...')
+    tmpfn = fn+'.json'
+    f=open(tmpfn,'w', encoding='utf-8')
+    cnt=0
+    for d in res:
+        cnt+=1
+        printProgressBar(cnt, total, prefix=cnt)
+        f.write(dumps(d))
+        f.write('\n')
+    f.close()
+    print('done.')
+   
+    
+    
