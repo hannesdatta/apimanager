@@ -218,8 +218,8 @@ def api_retrieve_ids(objectids):
             
             mbsize = len(bson.BSON.encode(resp))/1024/1024
             
-            if mbsize>14:
-                required_splits = math.ceil((mbsize/16)*1.50)
+            if mbsize>12:
+                required_splits = math.ceil((mbsize/16)*1.80)
                 splitted_obj=split_obj(resp, required_splits)
             else:
                 splitted_obj = [resp]
